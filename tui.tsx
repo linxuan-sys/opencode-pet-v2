@@ -54,6 +54,7 @@ function Pet(props: {
 }) {
   const theme = props.context.theme
   const [hoverAt, setHoverAt] = createSignal(-99)
+  const [lastMove, setLastMove] = createSignal(-99)
   const [jumpAt, setJumpAt] = createSignal(-99)
   const [side, setSide] = createSignal<"left" | "right">("right")
 
@@ -73,8 +74,8 @@ function Pet(props: {
 
     if (props.hover()) {
       const held = t() - hoverAt()
-      if (held < 5) return "^" // 先往上看（每格 150ms，5 格 ≈ 0.75s）
-      return SPIN[(held - 5) % SPIN.length] // 再转圈
+      if (held < 13) return "^" // 先往上看 2 秒（每格 150ms）
+      return SPIN[(held - 13) % SPIN.length] // 再转圈
     }
     // 不碰也眨眼：每 3 秒 o -> - -> o（20 格 × 150ms）
     if (t() % 20 < 2) return "-"
@@ -116,6 +117,7 @@ function Pet(props: {
   }
 
   const enter = (event: any) => {
+    setLastMove(t())
     pickSide(event)
     if (props.hover()) return
     setHoverAt(t())
@@ -126,6 +128,11 @@ function Pet(props: {
   createEffect(() => {
     props.poke()
     setJumpAt(untrack(() => props.tick()))
+  })
+
+  // 鼠标快速移出终端时收不到 mouseout，靠“多久没有鼠标事件”兜底清掉悬停
+  createEffect(() => {
+    if (props.hover() && t() - lastMove() > 13) props.setHover(false)
   })
 
   return (
